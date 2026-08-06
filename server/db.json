@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "id": "u_abylai",
+      "name": "Абылай Жусипбек",
+      "email": "abylai@ziz.kz",
+      "password": "$2a$10$QZpTnHLhdFzqnAtKSt/zquyrcpKJopjvcBOk/OJT/7d0a7ES237g6",
+      "role": "admin",
+      "isActive": true,
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "createdAt": "2026-01-01T00:00:00Z"
+    }
+  ],
+  "projects": [],
+  "tasks": []
+}

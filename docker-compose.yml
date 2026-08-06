@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  ziz-tasks:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ziz_tasks_app
+    ports:
+      - "3000:3001"
+    restart: always
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+    volumes:
+      - ./server/db.json:/app/server/db.json
