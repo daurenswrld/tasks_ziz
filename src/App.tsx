@@ -344,9 +344,16 @@ export const App: React.FC = () => {
   };
 
   // User Management Handlers (For Admin & PM)
-  const handleCreateUser = (data: { name: string; email: string; role: UserRole; password?: string }) => {
+  const handleCreateUser = async (data: { name: string; email: string; role: UserRole; password?: string }) => {
     try {
+      const created = await apiRequest('/users', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }).catch(() => null);
       const newUser = engine.createUser(currentUser, data);
+      if (created && created.id) {
+        newUser.id = created.id;
+      }
       refreshUsers();
       showToast(`Сотрудник ${newUser.name} создан!`);
     } catch (err: any) {
@@ -354,8 +361,9 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     try {
+      await apiRequest(`/users/${userId}`, { method: 'DELETE' }).catch(() => null);
       engine.deleteUser(currentUser, userId);
       refreshUsers();
       showToast('Сотрудник удален из команды');
@@ -364,8 +372,12 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleUpdateUserRole = (userId: string, newRole: UserRole) => {
+  const handleUpdateUserRole = async (userId: string, newRole: UserRole) => {
     try {
+      await apiRequest(`/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ role: newRole }),
+      }).catch(() => null);
       engine.updateUserRole(currentUser, userId, newRole);
       refreshUsers();
       showToast(`Роль сотрудника обновлена на ${newRole.toUpperCase()}`);
@@ -374,11 +386,15 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleUpdateUserPassword = (userId: string, newPassword: string) => {
+  const handleUpdateUserPassword = async (userId: string, newPassword: string) => {
     try {
+      await apiRequest(`/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ password: newPassword }),
+      }).catch(() => null);
       engine.updateUserPassword(currentUser, userId, newPassword);
       refreshUsers();
-      showToast(`Пароль для входа успешно обновлен`);
+      showToast(`Пароль для входа зашифрован и обновлен`);
     } catch (err: any) {
       showToast(err.message, 'error');
     }

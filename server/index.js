@@ -133,6 +133,58 @@ app.post('/api/users', authenticateToken, requireRole(['admin']), (req, res) => 
   res.status(201).json(sanitizeUser(newUser));
 });
 
+// PUT /api/users/:id (Update User Details & Password with Bcrypt Hashing)
+app.put('/api/users/:id', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { name, email, role, password, isActive, avatar } = req.body;
+  const db = readDB();
+
+  const user = db.users.find(u => u.id === id);
+  if (!user) {
+    return res.status(404).json({ error: 'Пользователь не найден' });
+  }
+
+  if (req.user.id !== id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Недостаточно прав для изменения данного пользователя' });
+  }
+
+  if (name !== undefined) user.name = name;
+  if (email !== undefined) user.email = email;
+  if (avatar !== undefined) user.avatar = avatar;
+
+  if (req.user.role === 'admin') {
+    if (role !== undefined) user.role = role;
+    if (isActive !== undefined) user.isActive = isActive;
+  }
+
+  if (password) {
+    user.password = bcrypt.hashSync(password, 10);
+  }
+
+  writeDB(db);
+  res.json({ message: 'Пользователь успешно обновлен', user: sanitizeUser(user) });
+});
+
+// DELETE /api/users/:id (Admin Delete User)
+app.delete('/api/users/:id', authenticateToken, requireRole(['admin']), (req, res) => {
+  const { id } = req.params;
+  const db = readDB();
+
+  const userIndex = db.users.findIndex(u => u.id === id);
+  if (userIndex === -1) {
+    return res.status(404).json({ error: 'Пользователь не найден' });
+  }
+
+  if (id === req.user.id) {
+    return res.status(400).json({ error: 'Нельзя удалить собственного пользователя' });
+  }
+
+  db.users.splice(userIndex, 1);
+  writeDB(db);
+
+  res.json({ message: 'Пользователь удален', id });
+});
+
 // --- PROJECTS ROUTES ---
 
 // GET /api/projects
