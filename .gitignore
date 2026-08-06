@@ -36,4 +36,3 @@ dist-ssr/
 # System Files
 .DS_Store
 Thumbs.db
-.agents/
