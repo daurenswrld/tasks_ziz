@@ -1,6 +1,7 @@
 import React from 'react';
 import { Project, User } from '../types/rbac';
 import { RBACGuard } from '../rbac/guard';
+import { UserAvatar } from './UserAvatar';
 import { Plus, FolderOpen } from 'lucide-react';
 
 interface HeaderProps {
@@ -22,18 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const documentCount = project.documents?.length || 0;
 
-  const getInitials = (name: string) => {
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
 
-  const getAvatarColorClass = (index: number) => {
-    const classes = ['avatar-blue', 'avatar-green', 'avatar-red', 'avatar-purple', 'avatar-orange'];
-    return classes[index % classes.length];
-  };
 
   // RBAC rule: UI hides unavailable actions completely instead of showing disabled buttons
   const canCreateTask = RBACGuard.canCreateTask(currentUser);
@@ -105,40 +95,18 @@ export const Header: React.FC<HeaderProps> = ({
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {/* Avatars Stack */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          {members.slice(0, 4).map((member, idx) =>
-            member.avatar ? (
-              <img
-                key={member.id}
-                src={member.avatar}
-                alt={member.name}
-                className="header-member-avatar"
-                title={`${member.name} (${member.role})`}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  marginLeft: idx === 0 ? 0 : '-8px',
-                  zIndex: 10 - idx,
-                  border: '2px solid var(--surface)',
-                  boxShadow: '0 0 0 1px var(--border)',
-                }}
-              />
-            ) : (
-              <div
-                key={member.id}
-                className={`avatar ${getAvatarColorClass(idx)}`}
-                style={{
-                  marginLeft: idx === 0 ? 0 : '-8px',
-                  zIndex: 10 - idx,
-                  boxShadow: '0 0 0 2px var(--surface)',
-                }}
-                title={`${member.name} (${member.role})`}
-              >
-                {getInitials(member.name)}
-              </div>
-            )
-          )}
+          {members.slice(0, 4).map((member, idx) => (
+            <UserAvatar
+              key={member.id}
+              user={member}
+              size={32}
+              style={{
+                marginLeft: idx === 0 ? 0 : '-8px',
+                zIndex: 10 - idx,
+                border: '2px solid var(--surface)',
+              }}
+            />
+          ))}
           {members.length > 4 && (
             <div
               className="avatar"

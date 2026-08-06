@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, UserRole } from '../types/rbac';
 import { RBACGuard } from '../rbac/guard';
+import { UserAvatar } from './UserAvatar';
 import { UserPlus, Key, Trash2, CheckCircle, XCircle } from 'lucide-react';
 
 interface TeamManagementViewProps {
@@ -243,23 +244,7 @@ export const TeamManagementView: React.FC<TeamManagementViewProps> = ({
               <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
                 <td style={{ padding: '16px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {u.avatar ? (
-                      <img
-                        src={u.avatar}
-                        alt={u.name}
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '50%',
-                          objectFit: 'cover',
-                          border: '1.5px solid var(--border)',
-                        }}
-                      />
-                    ) : (
-                      <div className="avatar avatar-blue" style={{ width: '36px', height: '36px', fontSize: '13px' }}>
-                        {u.name.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
+                    <UserAvatar user={u} size={36} />
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>
                         {u.name} {u.id === currentUser.id && '(Вы)'}

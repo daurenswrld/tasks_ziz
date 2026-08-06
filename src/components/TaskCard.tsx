@@ -1,6 +1,7 @@
 import React from 'react';
 import { Task, User } from '../types/rbac';
 import { RBACGuard } from '../rbac/guard';
+import { UserAvatar } from './UserAvatar';
 import { formatDeadlineShort } from '../utils/date';
 import { Check } from 'lucide-react';
 
@@ -24,22 +25,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const isDone = task.status === 'done';
   const canMove = RBACGuard.canMoveTask(currentUser, task);
 
-  const getInitials = (name: string) => {
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
 
-  const getAvatarColorClass = (id: string = '') => {
-    const colors = ['avatar-blue', 'avatar-green', 'avatar-purple', 'avatar-orange', 'avatar-red'];
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash += id.charCodeAt(i);
-    }
-    return colors[hash % colors.length];
-  };
 
   const isToday = task.deadline === '2026-08-05' || task.deadline === 'сегодня';
   const hasUnreadNotice = task.comments.length > 0 && task.status === 'doing';
@@ -138,28 +124,11 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Assignee Avatar */}
         {assignee && (
-          assignee.avatar ? (
-            <img
-              src={assignee.avatar}
-              alt={assignee.name}
-              className="avatar task-card-avatar"
-              title={`Исполнитель: ${assignee.name}`}
-              style={{
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '1.5px solid var(--border)',
-              }}
-            />
-          ) : (
-            <div
-              className={`avatar task-card-avatar ${getAvatarColorClass(assignee.id)}`}
-              title={`Исполнитель: ${assignee.name}`}
-            >
-              {getInitials(assignee.name)}
-            </div>
-          )
+          <UserAvatar
+            user={assignee}
+            size={28}
+            className="avatar task-card-avatar"
+          />
         )}
       </div>
     </div>

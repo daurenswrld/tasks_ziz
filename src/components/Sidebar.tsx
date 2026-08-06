@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ZizLogo } from './ZizLogo';
 import { User } from '../types/rbac';
 import { RBACGuard } from '../rbac/guard';
+import { UserAvatar } from './UserAvatar';
 import { FolderKanban, CheckSquare, Settings, Layers, Users as UsersIcon, ChevronRight, LogOut } from 'lucide-react';
 
 interface SidebarProps {
@@ -31,22 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const getAvatarColorClass = (id: string) => {
-    const colors = ['avatar-blue', 'avatar-green', 'avatar-purple', 'avatar-orange', 'avatar-red'];
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash += id.charCodeAt(i);
-    }
-    return colors[hash % colors.length];
-  };
 
-  const getInitials = (name: string) => {
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -222,25 +208,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             transition: 'all 0.15s ease',
           }}
         >
-          {currentUser.avatar ? (
-            <img
-              src={currentUser.avatar}
-              alt={currentUser.name}
-              className="sidebar-user-avatar"
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '1.5px solid var(--primary)',
-                flexShrink: 0,
-              }}
-            />
-          ) : (
-            <div className={`avatar ${getAvatarColorClass(currentUser.id)}`}>
-              {getInitials(currentUser.name)}
-            </div>
-          )}
+          <UserAvatar user={currentUser} size={32} />
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <div
               style={{

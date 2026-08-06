@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { User } from '../types/rbac';
+import { UserAvatar } from './UserAvatar';
 import { Moon, Sun, Paintbrush, Camera, Upload, Check } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -122,19 +123,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ position: 'relative' }}>
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="settings-avatar-img"
-                style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '2px solid var(--primary)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                }}
-              />
+              <UserAvatar user={currentUser} size={64} style={{ border: '2px solid var(--primary)' }} />
             </div>
             <div>
               <div style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-main)' }}>
