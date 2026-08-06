@@ -101,7 +101,7 @@ export class RBACEngine {
       password: data.password || '123456',
       role: data.role,
       isActive: true,
-      avatar: data.avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150`,
+      avatar: data.avatar || '',
       createdAt: new Date().toISOString(),
     };
 

@@ -7,10 +7,50 @@
       "password": "$2a$10$QZpTnHLhdFzqnAtKSt/zquyrcpKJopjvcBOk/OJT/7d0a7ES237g6",
       "role": "admin",
       "isActive": true,
-      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "avatar": "",
       "createdAt": "2026-01-01T00:00:00Z"
     }
   ],
-  "projects": [],
-  "tasks": []
+  "projects": [
+    {
+      "id": "proj_1786023099443",
+      "name": "фыввфы",
+      "key": "ФЫВ",
+      "description": "",
+      "memberIds": [
+        "u_abylai"
+      ],
+      "deadline": "2026-08-21",
+      "color": "#2754FF",
+      "completedTasksCount": 0,
+      "totalTasksCount": 0,
+      "isArchived": false,
+      "spec": {
+        "currentVersionId": "",
+        "versions": [],
+        "questions": []
+      },
+      "documents": [],
+      "createdAt": "2026-08-06T13:31:39.443Z",
+      "updatedAt": "2026-08-06T13:31:39.443Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_1786023105742",
+      "projectId": "proj_1786023099443",
+      "title": "фыв",
+      "description": "фывфыв",
+      "status": "todo",
+      "priority": "medium",
+      "deadline": "2026-08-15",
+      "assigneeId": "u_abylai",
+      "createdById": "u_abylai",
+      "checklist": [],
+      "comments": [],
+      "attachments": [],
+      "createdAt": "2026-08-06T13:31:45.742Z",
+      "updatedAt": "2026-08-06T13:31:45.742Z"
+    }
+  ]
 }

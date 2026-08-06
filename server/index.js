@@ -123,7 +123,7 @@ app.post('/api/users', authenticateToken, requireRole(['admin']), (req, res) => 
     password: hashedPassword,
     role,
     isActive: true,
-    avatar: avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+    avatar: avatar || '',
     createdAt: new Date().toISOString(),
   };
 

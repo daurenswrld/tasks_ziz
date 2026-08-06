@@ -53,13 +53,20 @@ export const App: React.FC = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        const exists = allUsers.find(u => u.id === parsed.id && u.isActive);
-        if (exists) return exists;
+        if (parsed && parsed.id) return parsed;
       } catch (e) {
         console.error('Error parsing stored user session:', e);
       }
     }
-    return allUsers.find(u => u.role === 'pm') || allUsers[0];
+    return {
+      id: 'u_abylai',
+      name: 'Абылай Жусипбек',
+      email: 'abylai@ziz.kz',
+      role: 'admin',
+      isActive: true,
+      avatar: '',
+      createdAt: '2026-01-01T00:00:00Z',
+    };
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -70,7 +77,7 @@ export const App: React.FC = () => {
   const CURRENT_PROJECT_KEY = 'ziz_current_project_id';
 
   const [currentProjectId, setCurrentProjectIdState] = useState<string>(() => {
-    return localStorage.getItem(CURRENT_PROJECT_KEY) || 'proj_crm';
+    return localStorage.getItem(CURRENT_PROJECT_KEY) || '';
   });
 
   const setCurrentProjectId = (id: string) => {
@@ -98,8 +105,6 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-
     const doSync = () => {
       engine.syncWithBackend().then(() => {
         refreshUsers();
@@ -109,14 +114,10 @@ export const App: React.FC = () => {
     // Initial sync
     doSync();
 
-    // Polling every 5 seconds for multi-user sync across devices
-    const interval = setInterval(doSync, 5000);
-
     // Re-sync when user returns to the browser tab
     window.addEventListener('focus', doSync);
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener('focus', doSync);
     };
   }, [isAuthenticated]);

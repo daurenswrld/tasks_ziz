@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Project, User } from '../types/rbac';
 import { RBACGuard } from '../rbac/guard';
+import { UserAvatar } from './UserAvatar';
 import { Search, Plus, RotateCcw, X, CheckCircle, Users, Check, Trash2 } from 'lucide-react';
 
 interface ProjectsViewProps {
@@ -702,11 +703,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                           }}
                         >
                           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                            <img
-                              src={u.avatar}
-                              alt={u.name}
-                              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
-                            />
+                            <UserAvatar user={u} size={28} />
                             {isSelected && (
                               <div
                                 style={{
