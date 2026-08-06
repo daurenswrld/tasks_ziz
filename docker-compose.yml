@@ -7,10 +7,17 @@ services:
       dockerfile: Dockerfile
     container_name: ziz_tasks_app
     ports:
-      - "127.0.0.1:8870:3001"
+      - "8870:3001"
     restart: always
     environment:
       - PORT=3001
       - NODE_ENV=production
     volumes:
       - ./server/db.json:/app/server/db.json
+    networks:
+      - default
+      - yapp_backend_default
+
+networks:
+  yapp_backend_default:
+    external: true
