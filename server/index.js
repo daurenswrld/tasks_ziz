@@ -347,6 +347,13 @@ app.delete('/api/tasks/:id', authenticateToken, requireRole(['admin', 'pm']), (r
   res.json({ message: `Задача '${deletedTask.title}' удалена`, id });
 });
 
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
 // Start Express Server
 app.listen(PORT, () => {
   console.log(`🚀 Secure Ziz Inc CRM Backend Server running at http://localhost:${PORT}`);
