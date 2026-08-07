@@ -10,6 +10,7 @@ interface ProjectsViewProps {
   currentUser: User;
   onSelectProject: (projectId: string) => void;
   onCreateProject: (data: { name: string; key: string; description: string; deadline?: string; color?: string; memberIds?: string[] }) => void;
+  onUpdateProject?: (projectId: string, updates: { name?: string; description?: string; deadline?: string; color?: string; memberIds?: string[] }) => void;
   onRestoreProject?: (projectId: string) => void;
   onArchiveProject?: (projectId: string) => void;
   onDeleteProject?: (projectId: string) => void;
@@ -21,12 +22,14 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
   currentUser,
   onSelectProject,
   onCreateProject,
+  onUpdateProject,
   onRestoreProject,
   onArchiveProject,
   onDeleteProject,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   // New Project Form State
   const [name, setName] = useState('');
@@ -36,9 +39,25 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
   const [color, setColor] = useState('#2754FF');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
+  // Edit Project Form State
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDeadline, setEditDeadline] = useState('');
+  const [editColor, setEditColor] = useState('#2754FF');
+  const [editMemberIds, setEditMemberIds] = useState<string[]>([]);
+
   const handleOpenCreateModal = () => {
     setSelectedMemberIds(users.length > 0 ? users.map(u => u.id) : [currentUser.id]);
     setIsCreateModalOpen(true);
+  };
+
+  const handleOpenEditModal = (proj: Project) => {
+    setEditingProject(proj);
+    setEditName(proj.name || '');
+    setEditDescription(proj.description || '');
+    setEditDeadline(proj.deadline || '');
+    setEditColor(proj.color || '#2754FF');
+    setEditMemberIds(proj.memberIds || users.map(u => u.id));
   };
 
   const canCreate = RBACGuard.canCreateProject(currentUser);
@@ -321,6 +340,25 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {canCreate && onUpdateProject && (
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        handleOpenEditModal(project);
+                      }}
+                      className="btn btn-ghost btn-sm"
+                      style={{
+                        fontSize: '12px',
+                        gap: '5px',
+                        color: 'var(--primary)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '4px 8px',
+                      }}
+                      title="Редактировать участников и параметры проекта"
+                    >
+                      <Users size={14} /> Участники
+                    </button>
+                  )}
                   {canCreate && onArchiveProject && (
                     <button
                       onClick={e => {
@@ -783,6 +821,281 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                 </button>
                 <button type="submit" className="btn btn-primary" style={{ backgroundColor: '#2754FF' }}>
                   Создать проект
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Project Modal */}
+      {editingProject && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(36, 43, 57, 0.6)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 60,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={() => setEditingProject(null)}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--surface)',
+              borderRadius: 'var(--radius-xl)',
+              width: '100%',
+              maxWidth: '480px',
+              padding: '28px',
+              boxShadow: 'var(--shadow-modal)',
+              border: '1px solid var(--border)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 className="h2-title" style={{ fontSize: '18px', margin: 0 }}>
+                Редактировать проект / Участники
+              </h3>
+              <button
+                onClick={() => setEditingProject(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                if (!editName.trim()) return;
+                if (onUpdateProject) {
+                  onUpdateProject(editingProject.id, {
+                    name: editName,
+                    description: editDescription,
+                    deadline: editDeadline || undefined,
+                    color: editColor,
+                    memberIds: editMemberIds,
+                  });
+                }
+                setEditingProject(null);
+              }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+            >
+              <div>
+                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>
+                  Название проекта *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>
+                  Дедлайн проекта
+                </label>
+                <input
+                  type="date"
+                  value={editDeadline}
+                  onChange={e => setEditDeadline(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+
+              <div>
+                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>
+                  Цвет обложки карточки
+                </label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {['#2754FF', '#1E293B', '#10B981', '#8B5CF6', '#EC4899', '#F59E0B'].map(c => (
+                    <div
+                      key={c}
+                      onClick={() => setEditColor(c)}
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: c,
+                        cursor: 'pointer',
+                        border: editColor === c ? '3px solid #000' : 'none',
+                        boxShadow: editColor === c ? '0 0 0 2px #fff' : 'none',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-label" style={{ display: 'block', marginBottom: '6px' }}>
+                  Описание проекта
+                </label>
+                <textarea
+                  rows={2}
+                  value={editDescription}
+                  onChange={e => setEditDescription(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+
+              {/* Members Selection */}
+              {users.length > 0 && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label className="text-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      <Users size={14} style={{ color: 'var(--primary)' }} />
+                      Команда проекта ({editMemberIds.length} из {users.length})
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (editMemberIds.length === users.length) {
+                          setEditMemberIds([currentUser.id]);
+                        } else {
+                          setEditMemberIds(users.map(u => u.id));
+                        }
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--primary)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                    >
+                      {editMemberIds.length === users.length ? 'Снять все' : 'Выбрать всех'}
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
+                      gap: '8px',
+                      maxHeight: '180px',
+                      overflowY: 'auto',
+                      padding: '2px',
+                    }}
+                  >
+                    {users.map(u => {
+                      const isSelected = editMemberIds.includes(u.id);
+                      const roleBadgeColor = u.role === 'admin' ? '#EF4444' : u.role === 'pm' ? '#8B5CF6' : '#10B981';
+                      const roleText = u.role === 'admin' ? 'Админ' : u.role === 'pm' ? 'ПМ' : 'Разраб';
+
+                      return (
+                        <div
+                          key={u.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setEditMemberIds(prev => prev.filter(id => id !== u.id));
+                            } else {
+                              setEditMemberIds(prev => [...prev, u.id]);
+                            }
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '8px 12px',
+                            borderRadius: 'var(--radius-md)',
+                            border: `1.5px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                            backgroundColor: isSelected ? 'rgba(39, 84, 255, 0.05)' : 'var(--surface)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            userSelect: 'none',
+                            boxShadow: isSelected ? '0 2px 8px rgba(39, 84, 255, 0.12)' : 'none',
+                          }}
+                        >
+                          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <UserAvatar user={u} size={28} />
+                            {isSelected && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '-2px',
+                                  right: '-2px',
+                                  width: '14px',
+                                  height: '14px',
+                                  borderRadius: '50%',
+                                  backgroundColor: 'var(--primary)',
+                                  color: '#fff',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: '1.5px solid var(--surface)',
+                                }}
+                              >
+                                <Check size={9} strokeWidth={3} />
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                color: 'var(--text-main)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {u.name}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '11px',
+                                color: 'var(--text-muted)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {u.email}
+                            </div>
+                          </div>
+
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 800,
+                              padding: '2px 6px',
+                              borderRadius: '6px',
+                              backgroundColor: `${roleBadgeColor}15`,
+                              color: roleBadgeColor,
+                              textTransform: 'uppercase',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {roleText}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingProject(null)}
+                  className="btn btn-ghost"
+                >
+                  Отмена
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ backgroundColor: '#2754FF' }}>
+                  Сохранить изменения
                 </button>
               </div>
             </form>

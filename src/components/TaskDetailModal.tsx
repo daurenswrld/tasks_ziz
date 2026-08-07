@@ -22,6 +22,7 @@ interface TaskDetailModalProps {
   onMoveTask: (taskId: string, newStatus: TaskStatus) => void;
   onToggleChecklist?: (taskId: string, itemId: string) => void;
   onAddComment: (taskId: string, content: string) => void;
+  onDeleteComment?: (taskId: string, commentId: string) => void;
   onAttachFile?: (taskId: string, fileData: { fileName: string; fileUrl: string; fileSize: number } | string) => void;
   onDeleteAttachment?: (taskId: string, attachmentId: string) => void;
   onAskSpecQuestion?: (question: string) => void;
@@ -36,6 +37,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   onClose,
   onMoveTask,
   onAddComment,
+  onDeleteComment,
   onAttachFile,
   onDeleteAttachment,
   onDeleteTask,
@@ -59,8 +61,18 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
   const compressToWebP = (file: File): Promise<{ fileName: string; fileUrl: string; fileSize: number }> => {
     return new Promise(resolve => {
       if (!file.type.startsWith('image/')) {
-        const fileUrl = URL.createObjectURL(file);
-        resolve({ fileName: file.name, fileUrl, fileSize: file.size });
+        const reader = new FileReader();
+        reader.onload = e => {
+          resolve({
+            fileName: file.name,
+            fileUrl: (e.target?.result as string) || '',
+            fileSize: file.size,
+          });
+        };
+        reader.onerror = () => {
+          resolve({ fileName: file.name, fileUrl: '', fileSize: file.size });
+        };
+        reader.readAsDataURL(file);
         return;
       }
 
@@ -433,7 +445,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                     )}
 
                     {/* Delete Attachment Button */}
-                    {onDeleteAttachment && canAttach && (
+                    {onDeleteAttachment && (canAttach || att.uploadedBy === currentUser.name || currentUser.role === 'admin' || currentUser.role === 'pm') && (
                       <button
                         type="button"
                         className="task-photo-delete-btn"
@@ -493,36 +505,59 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
               marginBottom: '14px',
             }}
           >
-            {task.comments.map(c => (
-              <div
-                key={c.id}
-                className="task-comment-card"
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'var(--bg)',
-                  border: '1px solid var(--border)',
-                }}
-              >
+            {task.comments.map(c => {
+              const canDeleteComment = c.authorId === currentUser.id || currentUser.role === 'admin' || currentUser.role === 'pm';
+              return (
                 <div
-                  className="task-comment-meta"
+                  key={c.id}
+                  className="task-comment-card"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '4px',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--bg)',
+                    border: '1px solid var(--border)',
                   }}
                 >
-                  <span className="task-comment-author" style={{ fontSize: '13px', fontWeight: 700 }}>{c.authorName}</span>
-                  <span className="task-comment-date" style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
-                    {c.createdAt.slice(11, 16)}
-                  </span>
+                  <div
+                    className="task-comment-meta"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    <span className="task-comment-author" style={{ fontSize: '13px', fontWeight: 700 }}>{c.authorName}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="task-comment-date" style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
+                        {c.createdAt.slice(11, 16)}
+                      </span>
+                      {onDeleteComment && canDeleteComment && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteComment(task.id, c.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--danger)',
+                            cursor: 'pointer',
+                            padding: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                          title="Удалить комментарий"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="task-comment-text" style={{ fontSize: '13px', color: 'var(--text-body-color)' }}>
+                    {c.content}
+                  </div>
                 </div>
-                <div className="task-comment-text" style={{ fontSize: '13px', color: 'var(--text-body-color)' }}>
-                  {c.content}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <form onSubmit={handleSendComment} className="task-comment-form" style={{ display: 'flex', gap: '8px' }}>

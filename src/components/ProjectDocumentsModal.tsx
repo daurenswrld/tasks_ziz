@@ -48,16 +48,26 @@ export const ProjectDocumentsModal: React.FC<ProjectDocumentsModalProps> = ({
     }
   };
 
-  const handleUploadSubmit = (e: React.FormEvent) => {
+  const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim()) return;
+
+    let fileUrl = `/documents/${newFileName || 'document.pdf'}`;
+    if (selectedFile) {
+      fileUrl = await new Promise<string>(resolve => {
+        const reader = new FileReader();
+        reader.onload = ev => resolve(ev.target?.result as string);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(selectedFile);
+      });
+    }
 
     onAddDocument({
       projectId: project.id,
       title: newTitle,
       category: 'other',
       fileName: newFileName || (selectedFile ? selectedFile.name : `${newTitle.toLowerCase().replace(/\s+/g, '_')}.pdf`),
-      fileUrl: selectedFile ? URL.createObjectURL(selectedFile) : `/documents/${newFileName || 'document.pdf'}`,
+      fileUrl,
       status: 'approved',
       uploadedBy: currentUser.name,
       notes: newNotes || undefined,

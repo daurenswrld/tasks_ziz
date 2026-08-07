@@ -243,6 +243,30 @@ export class RBACEngine {
     return project;
   }
 
+  public updateProject(
+    actor: User,
+    projectId: string,
+    updates: { name?: string; key?: string; description?: string; deadline?: string; color?: string; memberIds?: string[] }
+  ): Project {
+    RBACGuard.assertCanCreateProject(actor);
+
+    const project = this.projects.find(p => p.id === projectId);
+    if (!project) throw new Error('Проект не найден');
+
+    Object.assign(project, updates);
+    project.updatedAt = new Date().toISOString();
+
+    this.logger.logAction(
+      actor,
+      'Обновление проекта',
+      `Обновлены параметры/состав участников проекта '${project.name}'`,
+      'project',
+      project.id
+    );
+
+    return project;
+  }
+
   public archiveProject(actor: User, projectId: string): Project {
     RBACGuard.assertCanCreateProject(actor);
 
@@ -663,6 +687,28 @@ export class RBACEngine {
       actor,
       'Добавлен комментарий',
       `Комментарий к задаче '${task.title}': "${content}"`,
+      'task',
+      task.id
+    );
+
+    return task;
+  }
+
+  public deleteTaskComment(actor: User, taskId: string, commentId: string): Task {
+    const task = this.tasks.find(t => t.id === taskId);
+    if (!task) throw new Error('Задача не найдена');
+
+    if (!task.comments) task.comments = [];
+    const index = task.comments.findIndex(c => c.id === commentId);
+    if (index === -1) return task;
+
+    task.comments.splice(index, 1);
+    task.updatedAt = new Date().toISOString();
+
+    this.logger.logAction(
+      actor,
+      'Удален комментарий задачи',
+      `Удален комментарий из задачи '${task.title}'`,
       'task',
       task.id
     );

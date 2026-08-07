@@ -229,6 +229,23 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleDeleteTaskComment = async (taskId: string, commentId: string) => {
+    try {
+      await apiRequest(`/tasks/${taskId}/comments/${commentId}`, {
+        method: 'DELETE',
+      }).catch(() => null);
+
+      const updated = engine.deleteTaskComment(currentUser, taskId, commentId);
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask({ ...updated });
+      }
+      refreshUsers();
+      showToast(`Комментарий удален`);
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    }
+  };
+
   const handleAttachFile = async (
     taskId: string,
     fileData: { fileName: string; fileUrl: string; fileSize: number } | string
@@ -361,6 +378,20 @@ export const App: React.FC = () => {
       refreshUsers();
       setCurrentProjectId(proj.id);
       showToast(`Проект '${proj.name}' успешно создан!`);
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleUpdateProject = async (projectId: string, updates: any) => {
+    try {
+      await apiRequest(`/projects/${projectId}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      }).catch(() => null);
+      const proj = engine.updateProject(currentUser, projectId, updates);
+      refreshUsers();
+      showToast(`Проект '${proj.name}' обновлен!`);
     } catch (err: any) {
       showToast(err.message, 'error');
     }
@@ -577,6 +608,7 @@ export const App: React.FC = () => {
                     navigate('/board');
                   }}
                   onCreateProject={handleCreateProject}
+                  onUpdateProject={handleUpdateProject}
                   onRestoreProject={handleRestoreProject}
                   onArchiveProject={handleArchiveProject}
                   onDeleteProject={handleDeleteProject}
@@ -723,6 +755,7 @@ export const App: React.FC = () => {
               onMoveTask={handleMoveTask}
               onToggleChecklist={handleToggleChecklist}
               onAddComment={handleAddComment}
+              onDeleteComment={handleDeleteTaskComment}
               onAttachFile={handleAttachFile}
               onDeleteAttachment={handleDeleteTaskAttachment}
               onAskSpecQuestion={handleAskSpecQuestion}

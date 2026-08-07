@@ -235,7 +235,28 @@ app.post('/api/projects', authenticateToken, requireRole(['admin', 'pm']), (req,
   db.projects.push(newProject);
   writeDB(db);
 
-  res.status(201).json(newProject);
+// PUT /api/projects/:id (Update Project / Team Members)
+app.put('/api/projects/:id', authenticateToken, requireRole(['admin', 'pm']), (req, res) => {
+  const { name, key, description, deadline, color, memberIds } = req.body;
+  const { id } = req.params;
+  const db = readDB();
+
+  const project = db.projects.find(p => p.id === id);
+  if (!project) {
+    return res.status(404).json({ error: 'Проект не найден' });
+  }
+
+  if (name !== undefined) project.name = name;
+  if (key !== undefined) project.key = key;
+  if (description !== undefined) project.description = description;
+  if (deadline !== undefined) project.deadline = deadline;
+  if (color !== undefined) project.color = color;
+  if (Array.isArray(memberIds)) project.memberIds = memberIds;
+
+  project.updatedAt = new Date().toISOString();
+  writeDB(db);
+
+  res.json(project);
 });
 
 // PUT /api/projects/:id/archive (Archive Project)
@@ -522,6 +543,31 @@ app.post('/api/tasks/:id/comments', authenticateToken, (req, res) => {
   writeDB(db);
 
   res.status(201).json(newComment);
+});
+
+// DELETE /api/tasks/:id/comments/:commentId (Delete Comment)
+app.delete('/api/tasks/:id/comments/:commentId', authenticateToken, (req, res) => {
+  const { id, commentId } = req.params;
+  const db = readDB();
+
+  const task = db.tasks.find(t => t.id === id);
+  if (!task) {
+    return res.status(404).json({ error: 'Задача не найдена' });
+  }
+
+  if (!task.comments) task.comments = [];
+  const cmIndex = task.comments.findIndex(c => c.id === commentId);
+  if (cmIndex !== -1) {
+    const comment = task.comments[cmIndex];
+    if (req.user.role !== 'admin' && req.user.role !== 'pm' && comment.authorId !== req.user.id) {
+      return res.status(403).json({ error: 'Вы можете удалять только свои комментарии' });
+    }
+    task.comments.splice(cmIndex, 1);
+    task.updatedAt = new Date().toISOString();
+    writeDB(db);
+  }
+
+  res.json({ message: 'Comment deleted', commentId });
 });
 
 // POST /api/tasks/:id/attachments (Add Attachment)
