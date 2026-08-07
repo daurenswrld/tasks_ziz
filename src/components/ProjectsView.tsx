@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Project, User } from '../types/rbac';
 import { RBACGuard } from '../rbac/guard';
 import { UserAvatar } from './UserAvatar';
-import { Search, Plus, RotateCcw, X, CheckCircle, Users, Check, Trash2 } from 'lucide-react';
+import { Search, Plus, RotateCcw, X, CheckCircle, Users, Check, Trash2, Pencil } from 'lucide-react';
 
 interface ProjectsViewProps {
   projects: Project[];
@@ -356,7 +356,7 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
                       }}
                       title="Редактировать участников и параметры проекта"
                     >
-                      <Users size={14} /> Участники
+                      <Pencil size={14} /> Редактировать
                     </button>
                   )}
                   {canCreate && onArchiveProject && (
