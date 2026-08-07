@@ -235,6 +235,9 @@ app.post('/api/projects', authenticateToken, requireRole(['admin', 'pm']), (req,
   db.projects.push(newProject);
   writeDB(db);
 
+  res.status(201).json(newProject);
+});
+
 // PUT /api/projects/:id (Update Project / Team Members)
 app.put('/api/projects/:id', authenticateToken, requireRole(['admin', 'pm']), (req, res) => {
   const { name, key, description, deadline, color, memberIds } = req.body;
