@@ -231,14 +231,13 @@ export const ProjectDocumentsModal: React.FC<ProjectDocumentsModalProps> = ({
                     <a
                       href={doc.fileUrl}
                       download={doc.fileName}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="btn btn-secondary btn-sm"
                       style={{ gap: '6px' }}
-                      onClick={e => {
-                        e.preventDefault();
-                        alert(`Скачивание файла ${doc.fileName}`);
-                      }}
+                      title={`Скачать ${doc.fileName}`}
                     >
-                      <Download size={14} /> 
+                      <Download size={14} /> Скачать
                     </a>
 
                     {canManage && (

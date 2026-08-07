@@ -418,7 +418,11 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                         </div>
                       </div>
                     ) : (
-                      <div
+                      <a
+                        href={att.fileUrl}
+                        download={att.fileName}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="task-file-badge"
                         style={{
                           padding: '8px',
@@ -427,7 +431,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                           flexDirection: 'column',
                           alignItems: 'center',
                           gap: '4px',
+                          textDecoration: 'none',
                         }}
+                        title={`Скачать ${att.fileName}`}
                       >
                         <Paperclip size={18} color="var(--primary)" />
                         <span
@@ -441,7 +447,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
                         >
                           {att.fileName}
                         </span>
-                      </div>
+                      </a>
                     )}
 
                     {/* Delete Attachment Button */}
