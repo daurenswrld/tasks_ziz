@@ -269,7 +269,8 @@ export class RBACEngine {
 
   public addProjectDocument(
     actor: User,
-    docData: Omit<ProjectDocument, 'id' | 'uploadedAt'>
+    docData: Omit<ProjectDocument, 'id' | 'uploadedAt'> & { id?: string; uploadedAt?: string },
+    customDoc?: any
   ): ProjectDocument {
     const project = this.projects.find(p => p.id === docData.projectId);
     if (!project) throw new Error('Проект не найден');
@@ -278,13 +279,15 @@ export class RBACEngine {
       project.documents = [];
     }
 
-    const newDoc: ProjectDocument = {
-      id: `doc_${Date.now()}`,
+    const newDoc: ProjectDocument = customDoc || {
+      id: docData.id || `doc_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       ...docData,
-      uploadedAt: new Date().toISOString(),
+      uploadedAt: docData.uploadedAt || new Date().toISOString(),
     };
 
-    project.documents.push(newDoc);
+    if (!project.documents.some(d => d.id === newDoc.id)) {
+      project.documents.push(newDoc);
+    }
     project.updatedAt = new Date().toISOString();
 
     this.logger.logAction(
@@ -491,12 +494,16 @@ export class RBACEngine {
   public createTask(
     actor: User,
     data: {
+      id?: string;
       projectId: string;
       title: string;
       description: string;
       priority: TaskPriority;
       deadline?: string;
       assigneeId?: string;
+      checklist?: any[];
+      comments?: any[];
+      attachments?: any[];
     }
   ): Task {
     RBACGuard.assertCanCreateTask(actor);
@@ -505,7 +512,7 @@ export class RBACEngine {
     if (!project) throw new Error('Проект не найден');
 
     const newTask: Task = {
-      id: `task_${Date.now()}`,
+      id: data.id || `task_${Date.now()}`,
       projectId: data.projectId,
       title: data.title,
       description: data.description,
@@ -514,14 +521,19 @@ export class RBACEngine {
       deadline: data.deadline,
       assigneeId: data.assigneeId,
       createdById: actor.id,
-      checklist: [],
-      comments: [],
-      attachments: [],
+      checklist: data.checklist || [],
+      comments: data.comments || [],
+      attachments: data.attachments || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    this.tasks.push(newTask);
+    const existingIndex = this.tasks.findIndex(t => t.id === newTask.id);
+    if (existingIndex !== -1) {
+      this.tasks[existingIndex] = newTask;
+    } else {
+      this.tasks.push(newTask);
+    }
 
     this.logger.logAction(
       actor,
@@ -610,6 +622,7 @@ export class RBACEngine {
     const task = this.tasks.find(t => t.id === taskId);
     if (!task) throw new Error('Задача не найдена');
 
+    if (!task.checklist) task.checklist = [];
     const item = task.checklist.find(c => c.id === itemId);
     if (!item) throw new Error('Элемент чек-листа не найден');
 
@@ -628,11 +641,11 @@ export class RBACEngine {
     return task;
   }
 
-  public addComment(actor: User, taskId: string, content: string): Task {
+  public addComment(actor: User, taskId: string, content: string, customComment?: any): Task {
     const task = this.tasks.find(t => t.id === taskId);
     if (!task) throw new Error('Задача не найдена');
 
-    const comment = {
+    const comment = customComment || {
       id: `cm_${Date.now()}`,
       taskId,
       authorId: actor.id,
@@ -641,7 +654,10 @@ export class RBACEngine {
       createdAt: new Date().toISOString(),
     };
 
-    task.comments.push(comment);
+    if (!task.comments) task.comments = [];
+    if (!task.comments.some(c => c.id === comment.id)) {
+      task.comments.push(comment);
+    }
 
     this.logger.logAction(
       actor,
@@ -657,7 +673,8 @@ export class RBACEngine {
   public attachFile(
     actor: User,
     taskId: string,
-    fileData: { fileName: string; fileUrl: string; fileSize: number }
+    fileData: { fileName: string; fileUrl: string; fileSize: number },
+    customAttachment?: any
   ): Task {
     const task = this.tasks.find(t => t.id === taskId);
     if (!task) throw new Error('Задача не найдена');
@@ -666,8 +683,8 @@ export class RBACEngine {
       throw new Error('Разработчик может прикреплять файлы только к своим задачам.');
     }
 
-    const attachment = {
-      id: `att_${Date.now()}`,
+    const attachment = customAttachment || {
+      id: `att_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       taskId,
       fileName: fileData.fileName,
       fileUrl: fileData.fileUrl,
@@ -676,7 +693,10 @@ export class RBACEngine {
       uploadedAt: new Date().toISOString(),
     };
 
-    task.attachments.push(attachment);
+    if (!task.attachments) task.attachments = [];
+    if (!task.attachments.some(a => a.id === attachment.id)) {
+      task.attachments.push(attachment);
+    }
 
     this.logger.logAction(
       actor,
@@ -693,8 +713,9 @@ export class RBACEngine {
     const task = this.tasks.find(t => t.id === taskId);
     if (!task) throw new Error('Задача не найдена');
 
+    if (!task.attachments) task.attachments = [];
     const index = task.attachments.findIndex(a => a.id === attachmentId);
-    if (index === -1) throw new Error('Вложение не найдено');
+    if (index === -1) return task;
 
     const fileName = task.attachments[index].fileName;
     task.attachments.splice(index, 1);

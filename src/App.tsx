@@ -150,7 +150,10 @@ export const App: React.FC = () => {
   // Handler methods with error handling
   const handleMoveTask = async (taskId: string, newStatus: TaskStatus) => {
     try {
-      engine.moveTask(currentUser, taskId, newStatus);
+      const updated = engine.moveTask(currentUser, taskId, newStatus);
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask({ ...updated });
+      }
       showToast(`Задача перенесена в status '${newStatus.toUpperCase()}'`);
       await apiRequest(`/tasks/${taskId}/status`, {
         method: 'PUT',
@@ -168,11 +171,11 @@ export const App: React.FC = () => {
         projectId: activeProject.id,
         ...data,
       };
-      await apiRequest('/tasks', {
+      const created = await apiRequest<Task>('/tasks', {
         method: 'POST',
         body: JSON.stringify(payload),
       }).catch(() => null);
-      const task = engine.createTask(currentUser, payload);
+      const task = engine.createTask(currentUser, created || payload);
       if (data.status && data.status !== 'todo') {
         engine.moveTask(currentUser, task.id, data.status);
       }
@@ -194,24 +197,39 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleToggleChecklist = (taskId: string, itemId: string) => {
+  const handleToggleChecklist = async (taskId: string, itemId: string) => {
     try {
-      engine.toggleChecklistItem(currentUser, taskId, itemId);
+      const updated = engine.toggleChecklistItem(currentUser, taskId, itemId);
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask({ ...updated });
+      }
+      await apiRequest(`/tasks/${taskId}/checklist/${itemId}`, {
+        method: 'PUT',
+      }).catch(() => null);
     } catch (err: any) {
       showToast(err.message, 'error');
     }
   };
 
-  const handleAddComment = (taskId: string, content: string) => {
+  const handleAddComment = async (taskId: string, content: string) => {
     try {
-      engine.addComment(currentUser, taskId, content);
+      const createdComment = await apiRequest(`/tasks/${taskId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ content }),
+      }).catch(() => null);
+
+      const updated = engine.addComment(currentUser, taskId, content, createdComment);
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask({ ...updated });
+      }
+      refreshUsers();
       showToast(`Комментарий добавлен`);
     } catch (err: any) {
       showToast(err.message, 'error');
     }
   };
 
-  const handleAttachFile = (
+  const handleAttachFile = async (
     taskId: string,
     fileData: { fileName: string; fileUrl: string; fileSize: number } | string
   ) => {
@@ -220,55 +238,94 @@ export const App: React.FC = () => {
         typeof fileData === 'string'
           ? { fileName: fileData, fileUrl: `/files/${fileData}`, fileSize: 204800 }
           : fileData;
-      engine.attachFile(currentUser, taskId, data);
+
+      const createdAttachment = await apiRequest(`/tasks/${taskId}/attachments`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }).catch(() => null);
+
+      const updated = engine.attachFile(currentUser, taskId, data, createdAttachment);
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask({ ...updated });
+      }
+      refreshUsers();
       showToast(`Прикреплено: '${data.fileName}'`);
     } catch (err: any) {
       showToast(err.message, 'error');
     }
   };
 
-  const handleDeleteTaskAttachment = (taskId: string, attachmentId: string) => {
+  const handleDeleteTaskAttachment = async (taskId: string, attachmentId: string) => {
     try {
-      engine.deleteTaskAttachment(currentUser, taskId, attachmentId);
+      await apiRequest(`/tasks/${taskId}/attachments/${attachmentId}`, {
+        method: 'DELETE',
+      }).catch(() => null);
+
+      const updated = engine.deleteTaskAttachment(currentUser, taskId, attachmentId);
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask({ ...updated });
+      }
+      refreshUsers();
       showToast(`Файл удален из задачи`);
     } catch (err: any) {
       showToast(err.message, 'error');
     }
   };
 
-  const handleAddSpecVersion = (data: any) => {
+  const handleAddSpecVersion = async (data: any) => {
     if (!activeProject) return;
     try {
+      await apiRequest(`/projects/${activeProject.id}/spec/versions`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }).catch(() => null);
       engine.addSpecVersion(currentUser, activeProject.id, data);
+      refreshUsers();
       showToast(`Выпущена новая версия ТЗ!`);
     } catch (err: any) {
       showToast(err.message, 'error');
     }
   };
 
-  const handleAskSpecQuestion = (question: string) => {
+  const handleAskSpecQuestion = async (question: string) => {
     if (!activeProject) return;
     try {
+      await apiRequest(`/projects/${activeProject.id}/spec/questions`, {
+        method: 'POST',
+        body: JSON.stringify({ question, taskId: selectedTask?.id }),
+      }).catch(() => null);
       engine.askSpecQuestion(currentUser, activeProject.id, question, selectedTask?.id);
+      refreshUsers();
       showToast(`Вопрос по ТЗ отправлен менеджерам`);
     } catch (err: any) {
       showToast(err.message, 'error');
     }
   };
 
-  const handleAnswerSpecQuestion = (questionId: string, answer: string) => {
+  const handleAnswerSpecQuestion = async (questionId: string, answer: string) => {
     if (!activeProject) return;
     try {
+      await apiRequest(`/projects/${activeProject.id}/spec/questions/${questionId}/answer`, {
+        method: 'PUT',
+        body: JSON.stringify({ answer }),
+      }).catch(() => null);
       engine.answerSpecQuestion(currentUser, activeProject.id, questionId, answer);
+      refreshUsers();
       showToast(`Ответ на вопрос опубликован`);
     } catch (err: any) {
       showToast(err.message, 'error');
     }
   };
 
-  const handleAddProjectDocument = (docData: any) => {
+  const handleAddProjectDocument = async (docData: any) => {
+    if (!activeProject) return;
     try {
-      engine.addProjectDocument(currentUser, docData);
+      const createdDoc = await apiRequest(`/projects/${docData.projectId}/documents`, {
+        method: 'POST',
+        body: JSON.stringify(docData),
+      }).catch(() => null);
+
+      engine.addProjectDocument(currentUser, docData, createdDoc);
       refreshUsers();
       showToast(`Документ '${docData.title}' добавлен в проект`);
     } catch (err: any) {
@@ -276,9 +333,13 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleDeleteProjectDocument = (docId: string) => {
+  const handleDeleteProjectDocument = async (docId: string) => {
     if (!activeProject) return;
     try {
+      await apiRequest(`/projects/${activeProject.id}/documents/${docId}`, {
+        method: 'DELETE',
+      }).catch(() => null);
+
       engine.deleteProjectDocument(currentUser, activeProject.id, docId);
       refreshUsers();
       showToast(`Документ был удален`);
@@ -654,7 +715,7 @@ export const App: React.FC = () => {
 
           {selectedTask && activeProject && (
             <TaskDetailModal
-              task={selectedTask}
+              task={projectTasks.find(t => t.id === selectedTask.id) || selectedTask}
               project={activeProject}
               users={allUsers}
               currentUser={currentUser}

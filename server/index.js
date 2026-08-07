@@ -290,6 +290,146 @@ app.delete('/api/projects/:id', authenticateToken, requireRole(['admin', 'pm']),
   res.json({ message: `Проект '${deletedProject.name}' безвозвратно удален`, id: req.params.id });
 });
 
+// POST /api/projects/:id/documents (Add Document)
+app.post('/api/projects/:id/documents', authenticateToken, (req, res) => {
+  const { title, category, fileName, fileUrl, status, notes } = req.body;
+  const { id } = req.params;
+  const db = readDB();
+
+  const project = db.projects.find(p => p.id === id);
+  if (!project) {
+    return res.status(404).json({ error: 'Проект не найден' });
+  }
+
+  const newDoc = {
+    id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+    projectId: id,
+    title: title || 'Document',
+    category: category || 'other',
+    fileName: fileName || 'document.pdf',
+    fileUrl: fileUrl || '',
+    status: status || 'approved',
+    uploadedBy: req.user.name,
+    notes: notes || '',
+    uploadedAt: new Date().toISOString(),
+  };
+
+  if (!project.documents) project.documents = [];
+  project.documents.push(newDoc);
+  project.updatedAt = new Date().toISOString();
+  writeDB(db);
+
+  res.status(201).json(newDoc);
+});
+
+// DELETE /api/projects/:id/documents/:docId (Delete Document)
+app.delete('/api/projects/:id/documents/:docId', authenticateToken, (req, res) => {
+  const { id, docId } = req.params;
+  const db = readDB();
+
+  const project = db.projects.find(p => p.id === id);
+  if (!project) {
+    return res.status(404).json({ error: 'Проект не найден' });
+  }
+
+  if (!project.documents) project.documents = [];
+  const index = project.documents.findIndex(d => d.id === docId);
+  if (index !== -1) {
+    project.documents.splice(index, 1);
+    project.updatedAt = new Date().toISOString();
+    writeDB(db);
+  }
+
+  res.json({ message: 'Document deleted', docId });
+});
+
+// POST /api/projects/:id/spec/versions (Add Spec Version)
+app.post('/api/projects/:id/spec/versions', authenticateToken, (req, res) => {
+  const { title, type, content, changelog } = req.body;
+  const { id } = req.params;
+  const db = readDB();
+
+  const project = db.projects.find(p => p.id === id);
+  if (!project) return res.status(404).json({ error: 'Проект не найден' });
+
+  if (!project.spec) project.spec = { currentVersionId: '', versions: [], questions: [] };
+  if (!project.spec.versions) project.spec.versions = [];
+
+  const nextVerNumber = project.spec.versions.length + 1;
+  const newVersionId = `ver_v${nextVerNumber}_${Date.now()}`;
+
+  const versionObj = {
+    id: newVersionId,
+    versionNumber: nextVerNumber,
+    type: type || 'text',
+    title: title || 'New Version',
+    content: content || '',
+    changelog: changelog || '',
+    createdBy: req.user.id,
+    createdAt: new Date().toISOString(),
+  };
+
+  project.spec.versions.unshift(versionObj);
+  project.spec.currentVersionId = newVersionId;
+  project.updatedAt = new Date().toISOString();
+  writeDB(db);
+
+  res.status(201).json(versionObj);
+});
+
+// POST /api/projects/:id/spec/questions (Ask Spec Question)
+app.post('/api/projects/:id/spec/questions', authenticateToken, (req, res) => {
+  const { question, taskId } = req.body;
+  const { id } = req.params;
+  const db = readDB();
+
+  const project = db.projects.find(p => p.id === id);
+  if (!project) return res.status(404).json({ error: 'Проект не найден' });
+
+  if (!project.spec) project.spec = { currentVersionId: '', versions: [], questions: [] };
+  if (!project.spec.questions) project.spec.questions = [];
+
+  const newQuestion = {
+    id: `q_${Date.now()}`,
+    projectId: id,
+    taskId: taskId || null,
+    question,
+    askedBy: req.user.id,
+    askedAt: new Date().toISOString(),
+    status: 'open',
+  };
+
+  project.spec.questions.unshift(newQuestion);
+  writeDB(db);
+
+  res.status(201).json(newQuestion);
+});
+
+// PUT /api/projects/:id/spec/questions/:questionId/answer (Answer Spec Question)
+app.put('/api/projects/:id/spec/questions/:questionId/answer', authenticateToken, (req, res) => {
+  const { answer } = req.body;
+  const { id, questionId } = req.params;
+  const db = readDB();
+
+  const project = db.projects.find(p => p.id === id);
+  if (!project) return res.status(404).json({ error: 'Проект не найден' });
+
+  if (!project.spec || !project.spec.questions) {
+    return res.status(404).json({ error: 'Вопрос не найден' });
+  }
+
+  const q = project.spec.questions.find(item => item.id === questionId);
+  if (!q) return res.status(404).json({ error: 'Вопрос не найден' });
+
+  q.answer = answer;
+  q.answeredBy = req.user.id;
+  q.answeredAt = new Date().toISOString();
+  q.status = 'resolved';
+  writeDB(db);
+
+  res.json(q);
+});
+
 // --- TASKS ROUTES ---
 
 // GET /api/tasks
@@ -383,6 +523,80 @@ app.post('/api/tasks/:id/comments', authenticateToken, (req, res) => {
 
   res.status(201).json(newComment);
 });
+
+// POST /api/tasks/:id/attachments (Add Attachment)
+app.post('/api/tasks/:id/attachments', authenticateToken, (req, res) => {
+  const { fileName, fileUrl, fileSize } = req.body;
+  const { id } = req.params;
+  const db = readDB();
+
+  const task = db.tasks.find(t => t.id === id);
+  if (!task) {
+    return res.status(404).json({ error: 'Задача не найдена' });
+  }
+
+  const newAttachment = {
+    id: `att_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+    taskId: id,
+    fileName: fileName || 'File',
+    fileUrl: fileUrl || '',
+    fileSize: fileSize || 0,
+    uploadedBy: req.user.name,
+    uploadedAt: new Date().toISOString(),
+  };
+
+  if (!task.attachments) task.attachments = [];
+  task.attachments.push(newAttachment);
+  task.updatedAt = new Date().toISOString();
+  writeDB(db);
+
+  res.status(201).json(newAttachment);
+});
+
+// DELETE /api/tasks/:id/attachments/:attachmentId (Delete Attachment)
+app.delete('/api/tasks/:id/attachments/:attachmentId', authenticateToken, (req, res) => {
+  const { id, attachmentId } = req.params;
+  const db = readDB();
+
+  const task = db.tasks.find(t => t.id === id);
+  if (!task) {
+    return res.status(404).json({ error: 'Задача не найдена' });
+  }
+
+  if (!task.attachments) task.attachments = [];
+  const attIndex = task.attachments.findIndex(a => a.id === attachmentId);
+  if (attIndex !== -1) {
+    task.attachments.splice(attIndex, 1);
+    task.updatedAt = new Date().toISOString();
+    writeDB(db);
+  }
+
+  res.json({ message: 'Attachment deleted', attachmentId });
+});
+
+// PUT /api/tasks/:id/checklist/:itemId (Toggle Checklist Item)
+app.put('/api/tasks/:id/checklist/:itemId', authenticateToken, (req, res) => {
+  const { id, itemId } = req.params;
+  const db = readDB();
+
+  const task = db.tasks.find(t => t.id === id);
+  if (!task) {
+    return res.status(404).json({ error: 'Задача не найдена' });
+  }
+
+  if (!task.checklist) task.checklist = [];
+  const item = task.checklist.find(c => c.id === itemId);
+  if (item) {
+    item.completed = !item.completed;
+    item.completedBy = item.completed ? req.user.name : undefined;
+    item.completedAt = item.completed ? new Date().toISOString() : undefined;
+    task.updatedAt = new Date().toISOString();
+    writeDB(db);
+  }
+
+  res.json(task);
+});
+
 app.delete('/api/tasks/:id', authenticateToken, requireRole(['admin', 'pm']), (req, res) => {
   const { id } = req.params;
   const db = readDB();
