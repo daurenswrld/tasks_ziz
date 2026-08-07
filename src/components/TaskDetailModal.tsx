@@ -506,7 +506,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             }}
           >
             {task.comments.map(c => {
-              const canDeleteComment = c.authorId === currentUser.id || currentUser.role === 'admin' || currentUser.role === 'pm';
+              const canDeleteComment = !c.authorId || c.authorId === currentUser.id || c.authorName === currentUser.name || currentUser.role === 'admin' || currentUser.role === 'pm';
               return (
                 <div
                   key={c.id}

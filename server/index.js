@@ -559,7 +559,7 @@ app.delete('/api/tasks/:id/comments/:commentId', authenticateToken, (req, res) =
   const cmIndex = task.comments.findIndex(c => c.id === commentId);
   if (cmIndex !== -1) {
     const comment = task.comments[cmIndex];
-    if (req.user.role !== 'admin' && req.user.role !== 'pm' && comment.authorId !== req.user.id) {
+    if (req.user.role !== 'admin' && req.user.role !== 'pm' && comment.authorId && comment.authorId !== req.user.id && comment.authorName !== req.user.name) {
       return res.status(403).json({ error: 'Вы можете удалять только свои комментарии' });
     }
     task.comments.splice(cmIndex, 1);

@@ -643,32 +643,43 @@ export class RBACEngine {
   }
 
   public toggleChecklistItem(actor: User, taskId: string, itemId: string): Task {
-    const task = this.tasks.find(t => t.id === taskId);
-    if (!task) throw new Error('Задача не найдена');
+    const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) throw new Error('Задача не найдена');
 
-    if (!task.checklist) task.checklist = [];
-    const item = task.checklist.find(c => c.id === itemId);
-    if (!item) throw new Error('Элемент чек-листа не найден');
+    const task = this.tasks[taskIndex];
+    const checklist = (task.checklist || []).map(c => {
+      if (c.id === itemId) {
+        const completed = !c.completed;
+        return {
+          ...c,
+          completed,
+          completedBy: completed ? actor.name : undefined,
+          completedAt: completed ? new Date().toISOString() : undefined,
+        };
+      }
+      return c;
+    });
 
-    item.completed = !item.completed;
-    item.completedBy = item.completed ? actor.name : undefined;
-    item.completedAt = item.completed ? new Date().toISOString() : undefined;
+    const updatedTask = { ...task, checklist, updatedAt: new Date().toISOString() };
+    this.tasks[taskIndex] = updatedTask;
 
+    const item = checklist.find(c => c.id === itemId);
     this.logger.logAction(
       actor,
       'Чек-лист обновлен',
-      `Отметка в чек-листе "${item.title}" задачи '${task.title}' set to ${item.completed}`,
+      `Отметка в чек-листе "${item?.title || ''}" задачи '${task.title}' set to ${item?.completed}`,
       'task',
       task.id
     );
 
-    return task;
+    return updatedTask;
   }
 
   public addComment(actor: User, taskId: string, content: string, customComment?: any): Task {
-    const task = this.tasks.find(t => t.id === taskId);
-    if (!task) throw new Error('Задача не найдена');
+    const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) throw new Error('Задача не найдена');
 
+    const task = this.tasks[taskIndex];
     const comment = customComment || {
       id: `cm_${Date.now()}`,
       taskId,
@@ -678,10 +689,13 @@ export class RBACEngine {
       createdAt: new Date().toISOString(),
     };
 
-    if (!task.comments) task.comments = [];
-    if (!task.comments.some(c => c.id === comment.id)) {
-      task.comments.push(comment);
-    }
+    const existingComments = task.comments || [];
+    const newComments = existingComments.some(c => c.id === comment.id)
+      ? existingComments
+      : [...existingComments, comment];
+
+    const updatedTask = { ...task, comments: newComments, updatedAt: new Date().toISOString() };
+    this.tasks[taskIndex] = updatedTask;
 
     this.logger.logAction(
       actor,
@@ -691,19 +705,18 @@ export class RBACEngine {
       task.id
     );
 
-    return task;
+    return updatedTask;
   }
 
   public deleteTaskComment(actor: User, taskId: string, commentId: string): Task {
-    const task = this.tasks.find(t => t.id === taskId);
-    if (!task) throw new Error('Задача не найдена');
+    const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) throw new Error('Задача не найдена');
 
-    if (!task.comments) task.comments = [];
-    const index = task.comments.findIndex(c => c.id === commentId);
-    if (index === -1) return task;
+    const task = this.tasks[taskIndex];
+    const newComments = (task.comments || []).filter(c => c.id !== commentId);
 
-    task.comments.splice(index, 1);
-    task.updatedAt = new Date().toISOString();
+    const updatedTask = { ...task, comments: newComments, updatedAt: new Date().toISOString() };
+    this.tasks[taskIndex] = updatedTask;
 
     this.logger.logAction(
       actor,
@@ -713,7 +726,7 @@ export class RBACEngine {
       task.id
     );
 
-    return task;
+    return updatedTask;
   }
 
   public attachFile(
@@ -722,9 +735,10 @@ export class RBACEngine {
     fileData: { fileName: string; fileUrl: string; fileSize: number },
     customAttachment?: any
   ): Task {
-    const task = this.tasks.find(t => t.id === taskId);
-    if (!task) throw new Error('Задача не найдена');
+    const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) throw new Error('Задача не найдена');
 
+    const task = this.tasks[taskIndex];
     if (!RBACGuard.canAttachFileToTask(actor, task)) {
       throw new Error('Разработчик может прикреплять файлы только к своим задачам.');
     }
@@ -739,10 +753,13 @@ export class RBACEngine {
       uploadedAt: new Date().toISOString(),
     };
 
-    if (!task.attachments) task.attachments = [];
-    if (!task.attachments.some(a => a.id === attachment.id)) {
-      task.attachments.push(attachment);
-    }
+    const existingAttachments = task.attachments || [];
+    const newAttachments = existingAttachments.some(a => a.id === attachment.id)
+      ? existingAttachments
+      : [...existingAttachments, attachment];
+
+    const updatedTask = { ...task, attachments: newAttachments, updatedAt: new Date().toISOString() };
+    this.tasks[taskIndex] = updatedTask;
 
     this.logger.logAction(
       actor,
@@ -752,20 +769,20 @@ export class RBACEngine {
       task.id
     );
 
-    return task;
+    return updatedTask;
   }
 
   public deleteTaskAttachment(actor: User, taskId: string, attachmentId: string): Task {
-    const task = this.tasks.find(t => t.id === taskId);
-    if (!task) throw new Error('Задача не найдена');
+    const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+    if (taskIndex === -1) throw new Error('Задача не найдена');
 
-    if (!task.attachments) task.attachments = [];
-    const index = task.attachments.findIndex(a => a.id === attachmentId);
-    if (index === -1) return task;
+    const task = this.tasks[taskIndex];
+    const targetAtt = (task.attachments || []).find(a => a.id === attachmentId);
+    const fileName = targetAtt ? targetAtt.fileName : '';
+    const newAttachments = (task.attachments || []).filter(a => a.id !== attachmentId);
 
-    const fileName = task.attachments[index].fileName;
-    task.attachments.splice(index, 1);
-    task.updatedAt = new Date().toISOString();
+    const updatedTask = { ...task, attachments: newAttachments, updatedAt: new Date().toISOString() };
+    this.tasks[taskIndex] = updatedTask;
 
     this.logger.logAction(
       actor,
@@ -775,6 +792,6 @@ export class RBACEngine {
       task.id
     );
 
-    return task;
+    return updatedTask;
   }
 }
